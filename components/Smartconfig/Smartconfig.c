@@ -21,6 +21,11 @@
 #include "Bluetooth.h"
 #include "Json_parse.h"
 
+
+#include "Mesh.h"
+#include "mdf_common.h"
+#include "mwifi.h"
+
 wifi_config_t s_staconf;
 
 enum wifi_connect_sta
@@ -52,7 +57,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
         //Led_Status=LED_STA_INIT;
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
-        esp_wifi_connect();
+        //2esp_wifi_connect();
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         if (start_read_blue_ret == BLU_RESULT_SUCCESS) //在全功能版本时闪烁故障灯
         {
@@ -70,26 +75,39 @@ void initialise_wifi(char *wifi_ssid, char *wifi_password)
     printf("WIFI Reconnect,SSID=%s,PWD=%s\r\n", wifi_ssid, wifi_password);
 
     ESP_ERROR_CHECK(esp_wifi_get_config(ESP_IF_WIFI_STA, &s_staconf));
+    
     if (s_staconf.sta.ssid[0] == '\0')
     {
+        
         //ESP_ERROR_CHECK(esp_wifi_get_config(ESP_IF_WIFI_STA, &s_staconf));
+        /*
         strcpy((char *)s_staconf.sta.ssid, wifi_ssid);
         strcpy((char *)s_staconf.sta.password, wifi_password);
-
         ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &s_staconf));
         ESP_ERROR_CHECK(esp_wifi_start());
-        esp_wifi_connect();
+        esp_wifi_connect();*/
+        esp_wifi_get_config(ESP_IF_WIFI_STA, &s_staconf);  
+        strcpy((char *)s_staconf.sta.ssid, wifi_ssid);
+        strcpy((char *)s_staconf.sta.password, wifi_password);
+        esp_wifi_start();
+        Mesh_Init((char *)s_staconf.sta.ssid,(char *)s_staconf.sta.password);
     }
     else
     {
-        ESP_ERROR_CHECK(esp_wifi_stop());
+        /*ESP_ERROR_CHECK(esp_wifi_stop());
         memset(&s_staconf.sta, 0, sizeof(s_staconf));
         //printf("WIFI CHANGE\r\n");
         strcpy((char *)s_staconf.sta.ssid, wifi_ssid);
         strcpy((char *)s_staconf.sta.password, wifi_password);
         ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &s_staconf));
         ESP_ERROR_CHECK(esp_wifi_start());
-        esp_wifi_connect();
+        esp_wifi_connect();*/
+        ESP_ERROR_CHECK(esp_wifi_stop());
+        memset(&s_staconf.sta, 0, sizeof(s_staconf));
+        strcpy((char *)s_staconf.sta.ssid, wifi_ssid);
+        strcpy((char *)s_staconf.sta.password, wifi_password);
+        ESP_ERROR_CHECK(esp_wifi_start());
+        Mesh_Init((char *)s_staconf.sta.ssid,(char *)s_staconf.sta.password);
     }
     /*else if (strcmp(wifi_ssid, s_staconf.sta.ssid) == 0 && strcmp(wifi_password, s_staconf.sta.password) == 0)
     {
@@ -118,7 +136,7 @@ void initialise_wifi(char *wifi_ssid, char *wifi_password)
         esp_wifi_connect();
     }*/
 }
-
+/*
 void reconnect_wifi_usr(void)
 {
     printf("WIFI Reconnect\r\n");
@@ -130,26 +148,33 @@ void reconnect_wifi_usr(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &s_staconf));
     ESP_ERROR_CHECK(esp_wifi_start());
     esp_wifi_connect();
-}
+}*/
 
 void init_wifi(void)
 {
+    printf("init wifi start !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     tcpip_adapter_init();
     wifi_event_group = xEventGroupCreate();
     memset(&s_staconf.sta, 0, sizeof(s_staconf));
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    ESP_ERROR_CHECK(esp_mesh_set_6m_rate(false));
     ESP_ERROR_CHECK(esp_wifi_get_config(ESP_IF_WIFI_STA, &s_staconf));
+
     if (s_staconf.sta.ssid[0] != '\0')
     {
         printf("wifi_init_sta finished.");
         printf("connect to ap SSID:%s password:%s\r\n",
                s_staconf.sta.ssid, s_staconf.sta.password);
-        ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &s_staconf));
+        
+        //2ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &s_staconf));
         ESP_ERROR_CHECK(esp_wifi_start());
-        esp_wifi_connect();
+        //2esp_wifi_connect();
+        Mesh_Init((char *)s_staconf.sta.ssid,(char *)s_staconf.sta.password);
     }
     else
     {

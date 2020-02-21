@@ -26,6 +26,8 @@
 #include "Fire.h"
 #include "SD25RTC.h"
 
+#include "Mesh.h"
+
 void timer_periodic_cb(void *arg);
 
 esp_timer_handle_t timer_periodic_handle = 0; //定时器句柄
@@ -318,9 +320,14 @@ void app_main(void)
     strncpy(ble_dev_pwd, SerialNum + 3, 4);
     printf("ble_dev_pwd=%s\n", ble_dev_pwd);
 
-    ble_app_start();
-    init_wifi();
+    
 
+
+    ble_app_start();
+    
+    init_wifi();
+    //Mesh_Init();
+    
     //清空蓝牙配置信息
     //uint8_t zerobuf[256]="\0";
     //E2prom_BluWrite(0x00, (uint8_t *)zerobuf, 256);
@@ -379,8 +386,8 @@ void app_main(void)
         xTaskCreate(Motor_Task, "Motor_Task", 7168, NULL, 5, NULL);
         xTaskCreate(Wallkey_Read_Task, "Wallkey_Read_Task", 2048, NULL, 10, NULL);
 
-        initialise_http();
-        initialise_mqtt();
+        //initialise_http(); http 修改
+        //initialise_mqtt(); mqtt修改
     }
 
     else if (start_read_blue_ret == BLU_COMMAND_SWITCH) //只开关版本
@@ -404,4 +411,6 @@ void app_main(void)
         xTaskCreate(Motor_Task, "Motor_Task", 7168, NULL, 5, NULL);
         xTaskCreate(Wallkey_Read_Task, "Wallkey_Read_Task", 2048, NULL, 10, NULL);
     }
+
+    
 }

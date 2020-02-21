@@ -11,7 +11,7 @@
 #include "Led.h"
 #include "Bluetooth.h"
 
-
+#include "Mesh.h"
 static const char *TAG = "Fire";
 
 
@@ -30,35 +30,85 @@ void Fire_interrupt_callBack(void* arg)
             vTaskDelay(500 / portTICK_RATE_MS);
             //有火是0，没火是1
             ESP_LOGW(TAG, "FIRE_interrupt,gpio[%d]=%d\n", io_num,gpio_get_level(io_num));
-            if(gpio_get_level(io_num)==0) //火灾
+            if(ToorRe_status == Receive_messages)
             {
-                printf("on fire!\n");
-                mqtt_json_s.mqtt_fire_alarm=1;
-                if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
+                if(gpio_get_level(io_num)==0) //火灾
                 {
-                    http_send_mes(POST_ALLUP);  
-                }
-                
-                work_status=WORK_FIRE;
-                Led_Status=LED_STA_FIRE;
-                Motor_AutoCtl(0,0);
-            }
-            else//火灾解除
-            {
-                mqtt_json_s.mqtt_fire_alarm=0;
-                printf("fire close\n");
-                if(work_status==WORK_FIRE)
-                {
-                    if(protect_status==PROTECT_ON)
+                    printf("on fire!\n");
+                    
+                    if(work_status != WORK_FIRE)
                     {
-                        work_status=WORK_PROTECT;
-                        Led_Status=LED_STA_PROTECT;
+                        //Send_Mesh(FIRE); //mesh 内广播发生火灾
                     }
-                    else if(protect_status==PROTECT_OFF)
+                    mqtt_json_s.mqtt_fire_alarm=1;
+                    if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
                     {
-                        work_status=WORK_HANDTOAUTO;//切自动
+                        //http_send_mes(POST_ALLUP);  //minere
                     }
                     
+                    work_status=WORK_FIRE;
+                    Led_Status=LED_STA_FIRE;
+                    Motor_AutoCtl(0,0);
+                }
+            }else if(ToorRe_status == Send_message)
+            {
+                if(gpio_get_level(io_num)==0) //火灾
+                {
+                    printf("on fire!\n");
+                    
+                    if(work_status != WORK_FIRE)
+                    {
+                        //Send_Mesh(FIRE); //mesh 内广播发生火灾
+                    }
+                    mqtt_json_s.mqtt_fire_alarm=1;
+                    if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
+                    {
+                        //http_send_mes(POST_ALLUP);  //minere
+                    }
+                    
+                    work_status=WORK_FIRE;
+                    Led_Status=LED_STA_FIRE;
+                    Motor_AutoCtl(0,0);
+                }
+                else //火灾解除
+                {
+                    mqtt_json_s.mqtt_fire_alarm=0;
+                    ToorRe_status = Unknow_messages;
+                    printf("fire close\n");
+                    if(work_status==WORK_FIRE)
+                    {    //Send_Mesh(NOTH); //mesh内广播火灾结束
+                        if(protect_status==PROTECT_ON)
+                        {
+                            work_status=WORK_PROTECT;
+                            Led_Status=LED_STA_PROTECT;
+                        }
+                        else if(protect_status==PROTECT_OFF)
+                        {
+                            work_status=WORK_HANDTOAUTO;//切自动
+                        }
+                        
+                    }
+                }
+            }else if(ToorRe_status == Unknow_messages)
+            {
+                 
+                if(gpio_get_level(io_num)==0) //火灾
+                {
+                    printf("on fire!\n");
+                    ToorRe_status = Send_message; //默认设备第一次发消息 则为接入火线设备 以后由它发送灭火信号
+                    if(work_status != WORK_FIRE)
+                    {
+                        //Send_Mesh(FIRE); //mesh 内广播发生火灾
+                    }
+                    mqtt_json_s.mqtt_fire_alarm=1;
+                    if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
+                    {
+                        //http_send_mes(POST_ALLUP);  //minere
+                    }
+                    
+                    work_status=WORK_FIRE;
+                    Led_Status=LED_STA_FIRE;
+                    Motor_AutoCtl(0,0);
                 }
             }
         }

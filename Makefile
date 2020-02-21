@@ -5,5 +5,5 @@
 
 PROJECT_NAME := esp32_project
 
-include $(IDF_PATH)/make/project.mk
+include $(MDF_PATH)/project.mk
 
