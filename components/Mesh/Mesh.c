@@ -4,6 +4,8 @@
 static const char *TAG = "Mesh";
 TaskHandle_t root_read_xhandle,root_write_xhandle;
 TaskHandle_t node_read_xhandle,node_write_xhandle;
+TimerHandle_t timer;
+
 void root_read_task(void *arg)
 {
     
@@ -20,7 +22,9 @@ void root_read_task(void *arg)
             vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
+        
         mwifi_root_read(src_addr, &data_type, &data, &size, portMAX_DELAY);
+        memset(data, '\0', size);
     }
     MDF_FREE(data);
     vTaskDelete(NULL);
@@ -52,6 +56,7 @@ void root_write_task(void *arg)
         memset(&wifi_sta_list,'\0',sizeof(wifi_sta_list));
         esp_wifi_ap_get_sta_list(&wifi_sta_list);
         vTaskDelay(3000 / portTICK_RATE_MS);
+        MDF_FREE(data);
     }
     MDF_FREE(data);
     vTaskDelete(NULL);
@@ -72,10 +77,10 @@ static void node_read_task(void *arg)
             vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
-        memset(data, '\0', MWIFI_PAYLOAD_LEN);
-        mwifi_read(src_addr, &data_type, data, &size, portMAX_DELAY);
-        MDF_LOGI("Node receive: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
         
+        mwifi_read(src_addr, &data_type, data, &size, portMAX_DELAY);
+        //MDF_LOGI("Node receive: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
+        memset(data, '\0', size);
         
     }
     MDF_FREE(data);
@@ -83,25 +88,7 @@ static void node_read_task(void *arg)
     vTaskDelete(NULL);
 }
 
-static void print_system_info_timercb(void *timer) //定时器查看当前剩余内存 
-{
 
-    uint8_t sta_mac[MWIFI_ADDR_LEN] = {0};
-    wifi_sta_list_t wifi_sta_list   = {0x0};
-    mesh_addr_t parent_bssid        = {0};
-    
-    esp_wifi_get_mac(ESP_IF_WIFI_STA, sta_mac);
-    esp_wifi_ap_get_sta_list(&wifi_sta_list);
-    esp_mesh_get_parent_bssid(&parent_bssid);
-
-    MDF_LOGI("self mac: " MACSTR ", parent bssid: " MACSTR ",free heap: %u", 
-             MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),esp_get_free_heap_size());
-
-    for (int i = 0; i < wifi_sta_list.num; i++) {
-        MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
-    }
-
-}
 
 static void node_write_task(void *arg)
 {
@@ -130,12 +117,30 @@ static void node_write_task(void *arg)
     vTaskDelete(NULL);
 }
 
+static void print_system_info_timercb(void *timer) //定时器查看当前剩余内存 
+{
 
+    uint8_t sta_mac[MWIFI_ADDR_LEN] = {0};
+    wifi_sta_list_t wifi_sta_list   = {0x0};
+    mesh_addr_t parent_bssid        = {0};
+    
+    esp_wifi_get_mac(ESP_IF_WIFI_STA, sta_mac);
+    esp_wifi_ap_get_sta_list(&wifi_sta_list);
+    esp_mesh_get_parent_bssid(&parent_bssid);
+
+    MDF_LOGI("self mac: " MACSTR ", parent bssid: " MACSTR ",free heap: %u", 
+             MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),esp_get_free_heap_size());
+
+    //for (int i = 0; i < wifi_sta_list.num; i++) {
+    //    MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
+    //}
+
+}
 
 static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 {
     //MDF_LOGI("event_loop_cb, event: %d", event); 显示callback问题编号
-    //TimerHandle_t timer;
+    
 
     switch (event) {
         case MDF_EVENT_MWIFI_STARTED:
@@ -164,13 +169,13 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
             xTaskCreate(root_read_task, "root_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_read_xhandle);
             xTaskCreate(root_write_task, "write_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_write_xhandle);
 
-            //timer = xTimerCreate("print_system_info", 10000 / portTICK_RATE_MS,true, NULL, print_system_info_timercb);
-            //xTimerStart(timer, 0);
+            timer = xTimerCreate("print_system_info", 10000 / portTICK_RATE_MS,true, NULL, print_system_info_timercb);
+            xTimerStart(timer, 0);
             
             break;
         case MDF_EVENT_MWIFI_ROOT_LOST_IP:
             MDF_LOGI("MDF_EVENT_MWIFI_ROOT_LOST_IP");
-            //xTimerStop(timer, 0);
+            xTimerStop(timer, 0);
             vTaskDelete(root_read_xhandle);
             vTaskDelete(root_write_xhandle);
         default:
