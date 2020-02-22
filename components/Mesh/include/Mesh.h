@@ -15,17 +15,17 @@
 
 
 void Mesh_Init(char *wifi_ssid, char *wifi_password);
-mdf_err_t Send_Mesh(uint32_t fire_level,char *data,size_t size,mwifi_data_type_t data_type);
+mdf_err_t Send_Mesh(uint32_t fire_level);
 
 
 
-/*
+
 enum{
     FIRE = 0, //火情发生
     NOTH,     //火情结束
 };
 static uint8_t mesh_status = NOTH;
-*/
+
 
 enum{
     Send_message = 0,
