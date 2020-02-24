@@ -112,16 +112,16 @@ void http_get_task(void *pvParameters)
 
     //free(json_data);
 
-    strcpy(mqtt_json_s.mqtt_mode, "1");//¸øÄ£Ê½³õÖµÎª×Ô¶¯Ä£Ê½
-    mqtt_json_s.mqtt_sun_condition=1;//³õÊ¼»¯ÎªÇçÌì
+    strcpy(mqtt_json_s.mqtt_mode, "1");//ç»™æ¨¡å¼åˆå€¼ä¸ºè‡ªåŠ¨æ¨¡å¼
+    mqtt_json_s.mqtt_sun_condition=1;//åˆå§‹åŒ–ä¸ºæ™´å¤©
     
     //mqtt_json_s.mqtt_height=0;
     //mqtt_json_s.mqtt_angle=0;
     //http_send_mes(POST_ALLDOWN);     
-    /***´ò¿ª¶¨Ê±Æ÷10s¿ªÆôÒ»´Î***/
+    /***æ‰“å¼€å®šæ—¶å™¨10så¼€å¯ä¸€æ¬¡***/
     esp_timer_create(&http_suspend, &http_suspend_p);
     esp_timer_start_periodic(http_suspend_p, 1000 * 1000 * 10);
-    /***´ò¿ª¶¨Ê±Æ÷¡Á**/
+    /***æ‰“å¼€å®šæ—¶å™¨Ã—**/
 
     while (1)
     {
@@ -137,7 +137,7 @@ void http_get_task(void *pvParameters)
         ESP_LOGI("RAM", "Free Heap:%d,%d", esp_get_free_heap_size(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         
-        six_time_count++;//¶¨Ê±60s
+        six_time_count++;//å®šæ—¶60s
         if (six_time_count >= 6)
         {
             six_time_count = 0;
@@ -167,7 +167,7 @@ void http_get_task(void *pvParameters)
             }
             ESP_LOGI(TAG, "... allocated socket");
 
-            //Á¬½Ó
+            //è¿æ¥
             int http_con_ret;
             http_con_ret=connect(s, res->ai_addr, res->ai_addrlen);
             if ( http_con_ret != 0)
@@ -189,7 +189,7 @@ void http_get_task(void *pvParameters)
 
             
 
-            /**************·¢ËÍĞÄÌø*******************************************************/
+            /**************å‘é€å¿ƒè·³*******************************************************/
             if (write(s, build_heart_url, strlen(build_heart_url)) < 0)
             {
                 ESP_LOGE(TAG, "... socket send failed");
@@ -237,7 +237,7 @@ void http_get_task(void *pvParameters)
     }
 }
 
-//¼¤»îÁ÷³Ì
+//æ¿€æ´»æµç¨‹
 int http_activate(void)
 {
     const struct addrinfo hints = {
@@ -345,10 +345,10 @@ void http_send_mes(uint8_t post_status)
     //pCreat_json1->creat_json_b=malloc(1024);
 
     //ESP_LOGI("wifi", "1free Heap:%d,%d", esp_get_free_heap_size(), heap_caps_get_free_size(MALLOC_CAP_8BIT));  
-    //´´½¨POSTµÄjson¸ñÊ½
+    //åˆ›å»ºPOSTçš„jsonæ ¼å¼
     create_http_json(post_status,pCreat_json1);
 
-    if(post_status==POST_NOCOMMAND)//ÎŞcommID
+    if(post_status==POST_NOCOMMAND)//æ— commID
     {
         sprintf(build_po_url, "%s%s%s%s%s%s%s%s%s%s%s%d%s", http.POST, http.POST_URL1, ApiKey, http.POST_URL_FIRMWARE,FIRMWARE,http.POST_URL_SSID,wifi_data.wifi_ssid,
             http.HTTP_VERSION11, http.HOST, http.USER_AHENT, http.CONTENT_LENGTH, pCreat_json1->creat_json_c, http.ENTER);
@@ -387,7 +387,7 @@ void http_send_mes(uint8_t post_status)
     }
     ESP_LOGI(TAG, "... allocated socket");
 
-    //Á¬½Ó
+    //è¿æ¥
     int http_con_ret;
     http_con_ret=connect(s, res->ai_addr, res->ai_addrlen);
     if ( http_con_ret != 0)
@@ -408,7 +408,7 @@ void http_send_mes(uint8_t post_status)
     freeaddrinfo(res);
 
     
-    //·¢ËÍ
+    //å‘é€
     if (write(s, build_po_url_json, strlen(build_po_url_json)) < 0)
     {
         ESP_LOGE(TAG, "... socket send failed");
@@ -418,9 +418,9 @@ void http_send_mes(uint8_t post_status)
     ESP_LOGI(TAG, "... http socket send success");
 
 
-    //ÉèÖÃ½ÓÊÕ
+    //è®¾ç½®æ¥æ”¶
     struct timeval receiving_timeout;
-    if(work_status==WORK_HAND)//ÊÖ¶¯¿ØÖÆÊ±µÄ³¬Ê±Ê±¼äËõ¶Ì£¬±ÜÃâÉÏ´«µÈ´ırespondÊ±£¬²»ÔËĞĞÖ¸Áî
+    if(work_status==WORK_HAND)//æ‰‹åŠ¨æ§åˆ¶æ—¶çš„è¶…æ—¶æ—¶é—´ç¼©çŸ­ï¼Œé¿å…ä¸Šä¼ ç­‰å¾…respondæ—¶ï¼Œä¸è¿è¡ŒæŒ‡ä»¤
     {
         receiving_timeout.tv_sec = 0;
         receiving_timeout.tv_usec = 100;
@@ -440,13 +440,13 @@ void http_send_mes(uint8_t post_status)
     ESP_LOGI(TAG, "... set socket receiving timeout success");
 
     /* Read HTTP response */
-    //½ÓÊÕHTTP·µ»Ø
+    //æ¥æ”¶HTTPè¿”å›
     bzero(recv_buf,sizeof(recv_buf));
     r = read(s, recv_buf, sizeof(recv_buf) - 1);
     printf("r=%d,recv=%s\r\n",r, recv_buf);
     close(s);
 
-    //½âÎö·µ»ØÊı¾İ
+    //è§£æè¿”å›æ•°æ®
     if(r>0)
     {
         parse_objects_http_respond(strchr(recv_buf, '{'));

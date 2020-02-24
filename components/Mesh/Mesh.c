@@ -13,7 +13,7 @@ void root_read_task(void *arg)
     size_t size   = MWIFI_PAYLOAD_LEN;
     uint8_t src_addr[MWIFI_ADDR_LEN] = {0x0};
     mwifi_data_type_t data_type      = {0x0};
-
+    
     mdf_err_t ret = MDF_OK;
     MDF_LOGI("root_read_task running");
 
@@ -30,6 +30,8 @@ void root_read_task(void *arg)
         //MDF_LOGI("ROOT receive1: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
         ret = mwifi_root_read(src_addr, &data_type, &data, &size, portMAX_DELAY);
         MDF_ERROR_GOTO(ret != MDF_OK, MEM_FREE, "<%s> mwifi_root_read", mdf_err_to_name(ret));
+        
+        parse_rootread_mesh(data);
         //MDF_LOGI("ROOT receive1: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
 MEM_FREE:
         MDF_FREE(data);
@@ -55,12 +57,7 @@ void root_write_task(void *arg)
             vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
-        /*size = asprintf(&data, "{\"user\": \"root\",\"data\": \"HELLO\"}"); //测试用
-        for (int i = 0; i < wifi_sta_list.num; i++) {
-                mwifi_root_write(wifi_sta_list.sta[i].mac, 1, &data_type, data, size, true);
-        }
-        memset(&wifi_sta_list,'\0',sizeof(wifi_sta_list));
-        esp_wifi_ap_get_sta_list(&wifi_sta_list);*/
+
         vTaskDelay(3000 / portTICK_RATE_MS);
         MDF_FREE(data);
     }
@@ -98,7 +95,6 @@ static void node_read_task(void *arg)
 }
 
 
-
 static void node_write_task(void *arg)
 {
     size_t size   = 0;
@@ -114,9 +110,6 @@ static void node_write_task(void *arg)
             continue;
         }
 
-   
-        size = asprintf(&data, "{\"user\": \"root\",\"data\": \"%d\"}",i++); //测试用
-        mwifi_write(NULL, &data_type, data, size, true);
         
         MDF_FREE(data);
         vTaskDelay(3000 / portTICK_RATE_MS);
@@ -125,30 +118,27 @@ static void node_write_task(void *arg)
 
     vTaskDelete(NULL);
 }
-
+/*
 static void print_system_info_timercb(void *timer) //定时器查看当前剩余内存 
 {
-
-    uint8_t sta_mac[MWIFI_ADDR_LEN] = {0};
     wifi_sta_list_t wifi_sta_list   = {0x0};
-    mesh_addr_t parent_bssid        = {0};
-    
-    esp_wifi_get_mac(ESP_IF_WIFI_STA, sta_mac);
+
     esp_wifi_ap_get_sta_list(&wifi_sta_list);
-    esp_mesh_get_parent_bssid(&parent_bssid);
 
-    MDF_LOGI("self mac: " MACSTR ", parent bssid: " MACSTR ",free heap: %u ,node num %d", 
-             MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),esp_get_free_heap_size(),wifi_sta_list.num);
+    MDF_LOGI("node num %d",wifi_sta_list.num);
 
-    //for (int i = 0; i < wifi_sta_list.num; i++) {
-    //    MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
-    //}
 
+}
+*/
+void Send_Test(){
+        size_t size   = 5;
+        mwifi_data_type_t data_type     = {0x0};
+        mwifi_write(NULL, &data_type, "Mined", size, true);
 }
 
 static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 {
-    //MDF_LOGI("event_loop_cb, event: %d", event); 显示callback问题编号
+    MDF_LOGI("event_loop_cb, event: %d", event); //显示callback问题编号
     
 
     switch (event) {
@@ -172,23 +162,29 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
             MDF_LOGI("MDF_EVENT_MWIFI_ROUTING_TABLE_REMOVE");
             break;
 
+        case MDF_EVENT_MWIFI_ROOT_ADDRESS:
+            MDF_LOGI("MDF_EVENT_MWIFI_ROOT_ADDRESS");
+            if(!esp_mesh_is_root())
+               Send_Test(); //此处可以发送发送设备信息
+            break;
         case MDF_EVENT_MWIFI_ROOT_GOT_IP: 
             MDF_LOGI("MDF_EVENT_MWIFI_ROOT_GOT_IP");
             
             xTaskCreate(root_read_task, "root_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_read_xhandle);
-            //xTaskCreate(root_write_task, "write_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_write_xhandle);
+            xTaskCreate(root_write_task, "write_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_write_xhandle);
 
-            timer = xTimerCreate("print_system_info", 10000 / portTICK_RATE_MS,true, NULL, print_system_info_timercb);
-            xTimerStart(timer, 0);
+            
+            //timer = xTimerCreate("print_system_info", 10000 / portTICK_RATE_MS,true, NULL, print_system_info_timercb);
+            //xTimerStart(timer, 0);
 
             vTaskDelete(node_write_xhandle);
             vTaskDelete(node_read_xhandle);
             break;
         case MDF_EVENT_MWIFI_ROOT_LOST_IP:
             MDF_LOGI("MDF_EVENT_MWIFI_ROOT_LOST_IP");
-            xTimerStop(timer, 0);
+            //xTimerStop(timer, 0);
             vTaskDelete(root_read_xhandle);
-            //vTaskDelete(root_write_xhandle);
+            vTaskDelete(root_write_xhandle);
             xTaskCreate(node_read_task, "node_read_task", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &node_read_xhandle);
             xTaskCreate(node_write_task, "node_write_task", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &node_write_xhandle);
         default:
@@ -236,7 +232,7 @@ void Mesh_Init(char *wifi_ssid, char *wifi_password)
 
 
 
-mdf_err_t Send_Mesh(uint32_t fire_level){
+mdf_err_t Send_Fire_Mesh(uint32_t fire_level){
 
     size_t size                     = 0;
     //int count                       = 0;
@@ -251,17 +247,18 @@ mdf_err_t Send_Mesh(uint32_t fire_level){
         MDF_LOGI("mwifi is not connected can't send message");
         return MDF_FAIL;
     }
+    MDF_LOGI("Ready...");
     esp_wifi_ap_get_sta_list(&wifi_sta_list);
     if(fire_level == FIRE){
         mesh_status = FIRE;
-        if(esp_mesh_is_root())
+        if(!esp_mesh_is_root())
         {   
-            size = asprintf(&data, "{\"user\": \"node\",\"data\": \"WARRING\"}");//向根节点发出消息
+            size = asprintf(&data, "{\"User\": \"NODE\",\"Data\": \"WARNING\",\"Type\": \"FIRESTA\"}");//向根节点发出消息
             mwifi_write(NULL, &data_type, data, size, true);
             MDF_LOGI("already send to root warring");
         }
         else{
-            size = asprintf(&data, "{\"user\": \"root\",\"data\": \"WARRING\"}");//根节点发出的消息
+            size = asprintf(&data, "{\"User\": \"ROOT\",\"Data\": \"WARNING\",\"Type\": \"FIRESTA\"}");//根节点发出的消息
             for (int i = 0; i < wifi_sta_list.num; i++) {
                 mwifi_root_write(wifi_sta_list.sta[i].mac, 1, &data_type, data, size, true);
             }
@@ -270,14 +267,14 @@ mdf_err_t Send_Mesh(uint32_t fire_level){
     }
     else if(fire_level == NOTH){
         mesh_status = NOTH;
-        if(esp_mesh_is_root())
+        if(!esp_mesh_is_root())
         {
-            size = asprintf(&data, "{\"user\": \"node\",\"data\": \"NOTHING\"}");//向根节点发出消息
+            size = asprintf(&data, "{\"User\": \"NODE\",\"Data\": \"NOTHING\",\"Type\": \"FIRESTA\"}");//向根节点发出消息
             mwifi_write(NULL, &data_type, data, size, true);
             MDF_LOGI("already send to root nothing");
         }
         else{
-            size = asprintf(&data, "{\"user\": \"root\",\"data\": \"NOTHING\"}");//根节点发出的消息
+            size = asprintf(&data, "{\"User\": \"ROOT\",\"Data\": \"NOTHING\",\"Type\": \"FIRESTA\"}");//根节点发出的消息
             for (int i = 0; i < wifi_sta_list.num; i++) {
                 mwifi_root_write(wifi_sta_list.sta[i].mac, 1, &data_type, data, size, true);
             }
@@ -286,6 +283,52 @@ mdf_err_t Send_Mesh(uint32_t fire_level){
     }
     
     MDF_FREE(data);
-    MDF_LOGI("already send");
+    return MDF_OK;
+}
+
+mdf_err_t parse_rootread_mesh(char *rootdata){
+    cJSON *json_data_parse              = NULL;
+    cJSON *json_data_parse_type         = NULL; //解析的信息属于什么状态
+    cJSON *json_data_parse_firesta      = NULL;
+    cJSON *json_data_parse_productid    = NULL;
+    cJSON *json_data_parse_channelid    = NULL;
+    cJSON *json_data_parse_apikey       = NULL;
+    cJSON *json_data_parse_serialnum    = NULL;
+
+    
+    if((json_data_parse = cJSON_Parse(rootdata)) !=NULL)
+    {   
+        if((json_data_parse_type = cJSON_GetObjectItem(json_data_parse, "Type")) != NULL)
+        {   
+            if(strcmp(json_data_parse_type->valuestring,MEST.FIRESTA) == PARSE_OK)
+            {   
+                if((json_data_parse_firesta = cJSON_GetObjectItem(json_data_parse, "Data"))!= NULL)
+                {   
+                    if(strcmp(json_data_parse_firesta->valuestring,MEST.WARNING) == PARSE_OK ) //且当前状态不为火灾
+                    {   
+                        Device_status = Receive_Device;  
+                        MDF_LOGI("Json Warning ......");
+                        //gpio_set_level(27,0);
+                        
+
+                    }else if(strcmp(json_data_parse_firesta->valuestring,MEST.NOTHING) == PARSE_OK) //且当前状态不为无事
+                    {  
+                        Device_status = Default_Device;
+                        MDF_LOGI("Json Nothing ......");
+                        gpio_set_level(27,1);
+                    }
+                }
+            }else if(strcmp(json_data_parse_type->valuestring,MEST.PROJSTA) == PARSE_OK)
+            {
+                json_data_parse_productid = cJSON_GetObjectItem(json_data_parse, "ProductId");
+                json_data_parse_channelid = cJSON_GetObjectItem(json_data_parse, "SerialNum");
+                json_data_parse_apikey    = cJSON_GetObjectItem(json_data_parse, "ApiKey");
+                json_data_parse_serialnum = cJSON_GetObjectItem(json_data_parse, "ChannelId");
+            }
+        }
+
+    }
+
+    cJSON_Delete(json_data_parse);
     return MDF_OK;
 }

@@ -30,87 +30,42 @@ void Fire_interrupt_callBack(void* arg)
             vTaskDelay(500 / portTICK_RATE_MS);
             //有火是0，没火是1
             ESP_LOGW(TAG, "FIRE_interrupt,gpio[%d]=%d\n", io_num,gpio_get_level(io_num));
-            if(ToorRe_status == Receive_messages)
-            {
-                if(gpio_get_level(io_num)==0) //火灾
+
+            if(Device_status == Default_Device) //若在未接收到Mesh信息的情况下发生状态变化 便为连接火线的设备 设置为发送设备 可以进行火情解除
+                Device_status = Send_Device;
+                
+            if(gpio_get_level(io_num)==0) //火灾
+            {   
+                printf("on fire!\n");
+                mqtt_json_s.mqtt_fire_alarm=1;
+
+                if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
                 {
-                    printf("on fire!\n");
-                    
-                    if(work_status != WORK_FIRE)
-                    {
-                        //Send_Mesh(FIRE); //mesh 内广播发生火灾
-                    }
-                    mqtt_json_s.mqtt_fire_alarm=1;
-                    if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
-                    {
-                        //http_send_mes(POST_ALLUP);  //minere
-                    }
-                    
-                    work_status=WORK_FIRE;
-                    Led_Status=LED_STA_FIRE;
-                    Motor_AutoCtl(0,0);
+                    //http_send_mes(POST_ALLUP);  
                 }
-            }else if(ToorRe_status == Send_message)
+                Send_Fire_Mesh(FIRE);
+                work_status=WORK_FIRE;
+                Led_Status=LED_STA_FIRE;
+                Motor_AutoCtl(0,0);
+
+            }
+            else if(Device_status == Send_Device)//只有连接火线的才可以进行火灾解除
             {
-                if(gpio_get_level(io_num)==0) //火灾
+                mqtt_json_s.mqtt_fire_alarm=0;
+                printf("fire close\n");
+                if(work_status==WORK_FIRE)
                 {
-                    printf("on fire!\n");
-                    
-                    if(work_status != WORK_FIRE)
+                    Send_Fire_Mesh(NOTH);
+                    if(protect_status==PROTECT_ON)
                     {
-                        //Send_Mesh(FIRE); //mesh 内广播发生火灾
+                        work_status=WORK_PROTECT;
+                        Led_Status=LED_STA_PROTECT;
                     }
-                    mqtt_json_s.mqtt_fire_alarm=1;
-                    if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
+                    else if(protect_status==PROTECT_OFF)
                     {
-                        //http_send_mes(POST_ALLUP);  //minere
+                        work_status=WORK_HANDTOAUTO;//切自动
                     }
-                    
-                    work_status=WORK_FIRE;
-                    Led_Status=LED_STA_FIRE;
-                    Motor_AutoCtl(0,0);
-                }
-                else //火灾解除
-                {
-                    mqtt_json_s.mqtt_fire_alarm=0;
-                    ToorRe_status = Unknow_messages;
-                    printf("fire close\n");
-                    if(work_status==WORK_FIRE)
-                    {    //Send_Mesh(NOTH); //mesh内广播火灾结束
-                        if(protect_status==PROTECT_ON)
-                        {
-                            work_status=WORK_PROTECT;
-                            Led_Status=LED_STA_PROTECT;
-                        }
-                        else if(protect_status==PROTECT_OFF)
-                        {
-                            work_status=WORK_HANDTOAUTO;//切自动
-                        }
-                        
-                    }
-                }
-            }else if(ToorRe_status == Unknow_messages)
-            {
-                 
-                if(gpio_get_level(io_num)==0) //火灾
-                {
-                    printf("on fire!\n");
-                    mesh_status = FIRE;
-                    //ToorRe_status = Send_message; //默认设备第一次发消息 则为接入火线设备 以后由它发送灭火信号
-                    //Send_Mesh(FIRE);
-                    if(work_status != WORK_FIRE)
-                    {
-                         //mesh 内广播发生火灾
-                    }
-                    mqtt_json_s.mqtt_fire_alarm=1;
-                    if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
-                    {
-                        //http_send_mes(POST_ALLUP);  //minere
-                    }
-                    
-                    work_status=WORK_FIRE;
-                    Led_Status=LED_STA_FIRE;
-                    Motor_AutoCtl(0,0);
+                    Device_status = Default_Device;
                 }
             }
         }
@@ -137,7 +92,7 @@ void Fire_Init(void)
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     gpio_config(&io_conf);
-
+    
     gpio_set_intr_type(GPIO_XF, GPIO_INTR_ANYEDGE);
     
     gpio_evt_queue = xQueueCreate(1, sizeof(uint32_t));
@@ -156,5 +111,3 @@ void Fire_Init(void)
 
 
 }
-
-
