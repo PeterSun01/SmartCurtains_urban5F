@@ -13,18 +13,26 @@ void root_read_task(void *arg)
     size_t size   = MWIFI_PAYLOAD_LEN;
     uint8_t src_addr[MWIFI_ADDR_LEN] = {0x0};
     mwifi_data_type_t data_type      = {0x0};
-    cJSON *json_data_parse = NULL;
 
-    MDF_LOGI("root_read_task is running");
+    mdf_err_t ret = MDF_OK;
+    MDF_LOGI("root_read_task running");
+
+
 
     for(;;) {
         if(mwifi_is_connected() && esp_mesh_get_layer() != MESH_ROOT){ //判断当前节点是否为根节点在进行工作
             vTaskDelay(500 / portTICK_RATE_MS);
+            MDF_LOGI("root_read_task loop");
             continue;
         }
-        
-        mwifi_root_read(src_addr, &data_type, &data, &size, portMAX_DELAY);
-        memset(data, '\0', size);
+    
+        //mwifi_read(src_addr, &data_type, data, &size, portMAX_DELAY);
+        //MDF_LOGI("ROOT receive1: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
+        ret = mwifi_root_read(src_addr, &data_type, &data, &size, portMAX_DELAY);
+        MDF_ERROR_GOTO(ret != MDF_OK, MEM_FREE, "<%s> mwifi_root_read", mdf_err_to_name(ret));
+        //MDF_LOGI("ROOT receive1: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
+MEM_FREE:
+        MDF_FREE(data);
     }
     MDF_FREE(data);
     vTaskDelete(NULL);
@@ -47,14 +55,12 @@ void root_write_task(void *arg)
             vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
-        size = asprintf(&data, "{\"user\": \"root\",\"data\": \"HELLO\"}");
- 
+        /*size = asprintf(&data, "{\"user\": \"root\",\"data\": \"HELLO\"}"); //测试用
         for (int i = 0; i < wifi_sta_list.num; i++) {
                 mwifi_root_write(wifi_sta_list.sta[i].mac, 1, &data_type, data, size, true);
         }
-
         memset(&wifi_sta_list,'\0',sizeof(wifi_sta_list));
-        esp_wifi_ap_get_sta_list(&wifi_sta_list);
+        esp_wifi_ap_get_sta_list(&wifi_sta_list);*/
         vTaskDelay(3000 / portTICK_RATE_MS);
         MDF_FREE(data);
     }
@@ -69,7 +75,7 @@ static void node_read_task(void *arg)
     size_t size   = MWIFI_PAYLOAD_LEN;
     mwifi_data_type_t data_type      = {0x0};
     uint8_t src_addr[MWIFI_ADDR_LEN] = {0x0};
-
+    mdf_err_t ret = MDF_OK;
     MDF_LOGI("Node read task is running");
 
     for (;;) {
@@ -79,6 +85,9 @@ static void node_read_task(void *arg)
         }
         
         mwifi_read(src_addr, &data_type, data, &size, portMAX_DELAY);
+        ret = mwifi_read(src_addr, &data_type, data, &size, portMAX_DELAY);
+        MDF_ERROR_CONTINUE(ret != MDF_OK, "<%s> mwifi_read", mdf_err_to_name(ret));
+
         //MDF_LOGI("Node receive: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
         memset(data, '\0', size);
         
@@ -97,16 +106,16 @@ static void node_write_task(void *arg)
     mwifi_data_type_t data_type     = {0x0};
 
     MDF_LOGI("Node task is running");
-
+    int i=0;
     for (;;) {
-        if (!mwifi_is_connected() || !mwifi_get_root_status()) {
+        
+        if (!mwifi_is_connected() ) {
             vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
 
    
-        size = asprintf(&data, "{\"user\": \"root\",\"data\": \"HELLO\"}");
-
+        size = asprintf(&data, "{\"user\": \"root\",\"data\": \"%d\"}",i++); //测试用
         mwifi_write(NULL, &data_type, data, size, true);
         
         MDF_FREE(data);
@@ -128,8 +137,8 @@ static void print_system_info_timercb(void *timer) //定时器查看当前剩余
     esp_wifi_ap_get_sta_list(&wifi_sta_list);
     esp_mesh_get_parent_bssid(&parent_bssid);
 
-    MDF_LOGI("self mac: " MACSTR ", parent bssid: " MACSTR ",free heap: %u", 
-             MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),esp_get_free_heap_size());
+    MDF_LOGI("self mac: " MACSTR ", parent bssid: " MACSTR ",free heap: %u ,node num %d", 
+             MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),esp_get_free_heap_size(),wifi_sta_list.num);
 
     //for (int i = 0; i < wifi_sta_list.num; i++) {
     //    MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
@@ -167,17 +176,21 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
             MDF_LOGI("MDF_EVENT_MWIFI_ROOT_GOT_IP");
             
             xTaskCreate(root_read_task, "root_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_read_xhandle);
-            xTaskCreate(root_write_task, "write_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_write_xhandle);
+            //xTaskCreate(root_write_task, "write_read", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &root_write_xhandle);
 
             timer = xTimerCreate("print_system_info", 10000 / portTICK_RATE_MS,true, NULL, print_system_info_timercb);
             xTimerStart(timer, 0);
-            
+
+            vTaskDelete(node_write_xhandle);
+            vTaskDelete(node_read_xhandle);
             break;
         case MDF_EVENT_MWIFI_ROOT_LOST_IP:
             MDF_LOGI("MDF_EVENT_MWIFI_ROOT_LOST_IP");
             xTimerStop(timer, 0);
             vTaskDelete(root_read_xhandle);
-            vTaskDelete(root_write_xhandle);
+            //vTaskDelete(root_write_xhandle);
+            xTaskCreate(node_read_task, "node_read_task", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &node_read_xhandle);
+            xTaskCreate(node_write_task, "node_write_task", 4 * 1024,NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, &node_write_xhandle);
         default:
             break;
     }

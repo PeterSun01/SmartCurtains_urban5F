@@ -95,10 +95,12 @@ void Fire_interrupt_callBack(void* arg)
                 if(gpio_get_level(io_num)==0) //火灾
                 {
                     printf("on fire!\n");
-                    ToorRe_status = Send_message; //默认设备第一次发消息 则为接入火线设备 以后由它发送灭火信号
+                    mesh_status = FIRE;
+                    //ToorRe_status = Send_message; //默认设备第一次发消息 则为接入火线设备 以后由它发送灭火信号
+                    //Send_Mesh(FIRE);
                     if(work_status != WORK_FIRE)
                     {
-                        //Send_Mesh(FIRE); //mesh 内广播发生火灾
+                         //mesh 内广播发生火灾
                     }
                     mqtt_json_s.mqtt_fire_alarm=1;
                     if(start_read_blue_ret==BLU_RESULT_SUCCESS)//全功能版本
