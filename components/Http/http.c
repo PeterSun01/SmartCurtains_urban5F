@@ -449,7 +449,10 @@ void http_send_mes(uint8_t post_status)
     //解析返回数据
     if(r>0)
     {
-        parse_objects_http_respond(strchr(recv_buf, '{'));
+        if(strchr(recv_buf, '{')!=NULL)
+        {
+            parse_objects_http_respond(strchr(recv_buf, '{'));
+        }
     }
 }
 
