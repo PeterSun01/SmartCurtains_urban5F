@@ -31,3 +31,6 @@ if(strchr(recv_buf, '{')!=NULL)
 {
     parse_objects_http_respond(strchr(recv_buf, '{'));
 }
+
+2021-02-03
+http_send_mes(),DNS lookup failed err,增加return

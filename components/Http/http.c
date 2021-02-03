@@ -369,8 +369,9 @@ void http_send_mes(uint8_t post_status)
     int err = getaddrinfo(WEB_SERVER, "80", &hints, &res);
     if (err != 0 || res == NULL)
     {
-        ESP_LOGE(TAG, "DNS lookup failed err=%d res=%p", err, res);
+        ESP_LOGE(TAG, "20210203DNS lookup failed err=%d res=%p", err, res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
+        return;
     }
 
     /* Code to print the resolved IP.
