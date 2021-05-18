@@ -122,7 +122,7 @@ void Wallkey_App(uint8_t *Key_Id, int8_t Switch)
         {
             WallKeyCtl_Status = WallKeyUpStart;
         }
-        else if (WallKeyCtl_Status == WallKeyUpStart)
+        else if (WallKeyCtl_Status == WallKeyUpStart || WallKeyCtl_Status == WallKeyDownStart)
         {
             WallKeyCtl_Status = WallKeyUpStop;
         }
@@ -134,7 +134,7 @@ void Wallkey_App(uint8_t *Key_Id, int8_t Switch)
         {
             WallKeyCtl_Status = WallKeyDownStart;
         }
-        else if (WallKeyCtl_Status == WallKeyDownStart)
+        else if (WallKeyCtl_Status == WallKeyUpStart || WallKeyCtl_Status == WallKeyDownStart)
         {
             WallKeyCtl_Status = WallKeyDownStop;
         }

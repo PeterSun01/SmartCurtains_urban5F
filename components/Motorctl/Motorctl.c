@@ -13,7 +13,8 @@
 #define MOTOR_CTL2   25
 
 //#define GJ5620              //big motor
-#define GJ5606K             //
+//#define GJ5606K             //
+#define GJ5606K_exb             //zhan jia 
 
 
 #ifdef GJ5620
@@ -162,7 +163,89 @@
 
 #endif
 
+#ifdef GJ5606K_exb
+#define ALLDOWNTIME         25*1000
+#define ALLUPTIME           25*1000
 
+#define ANGLE_N0TO0         70
+#define ANGLE_0TO10         139
+#define ANGLE_10TO20        101
+#define ANGLE_20TO30        85
+#define ANGLE_30TO40        76
+#define ANGLE_40TO50        70
+#define ANGLE_50TO60        66
+#define ANGLE_60TO70        80
+#define ANGLE_70TO80        500//29
+
+
+#define ANGLE_0TON0         50
+#define ANGLE_10TO0         75
+#define ANGLE_20TO10        75
+#define ANGLE_30TO20        75
+#define ANGLE_40TO30        75
+#define ANGLE_50TO40        75
+#define ANGLE_60TO50        75
+#define ANGLE_70TO60        75
+#define ANGLE_80TO70        300
+#define ANGLE_80TO60        375
+#define ANGLE_80TO50        450
+#define ANGLE_80TO40        525
+#define ANGLE_80TO30        600
+#define ANGLE_80TO20        675
+#define ANGLE_80TO10        750
+#define ANGLE_80TO0         1000//950
+
+
+//下降
+//#define HEIGHT_TOTAL    58000
+
+#define HEIGHT_100TO90     2600
+#define HEIGHT_90TO80      2600
+#define HEIGHT_80TO70      2600
+#define HEIGHT_70TO60      2600
+#define HEIGHT_60TO50      2600
+#define HEIGHT_50TO40      2600
+#define HEIGHT_40TO30      2600
+#define HEIGHT_30TO20      2600
+#define HEIGHT_20TO10      2600
+#define HEIGHT_10TO0       4000  //4958
+
+//上升
+#define HEIGHT_0TO10       2600
+#define HEIGHT_10TO20      2600
+#define HEIGHT_20TO30      2600
+#define HEIGHT_30TO40      2600
+#define HEIGHT_40TO50      2600
+#define HEIGHT_50TO60      2600
+#define HEIGHT_60TO70      2600
+#define HEIGHT_70TO80      2600
+#define HEIGHT_80TO90      2600
+#define HEIGHT_90TO100     4000  //3401
+
+// #define HEIGHT_100TO90    2252
+// #define HEIGHT_90TO80      2334
+// #define HEIGHT_80TO70      2412
+// #define HEIGHT_70TO60      2499
+// #define HEIGHT_60TO50      2597
+// #define HEIGHT_50TO40      2709
+// #define HEIGHT_40TO30      2837
+// #define HEIGHT_30TO20      2989
+// #define HEIGHT_20TO10      3170
+// #define HEIGHT_10TO0        4000  //4958
+
+// //上升
+// #define HEIGHT_0TO10       3240
+// #define HEIGHT_10TO20      3093
+// #define HEIGHT_20TO30      2947
+// #define HEIGHT_30TO40      2821
+// #define HEIGHT_40TO50      2711
+// #define HEIGHT_50TO60      2613
+// #define HEIGHT_60TO70      2527
+// #define HEIGHT_70TO80      2448
+// #define HEIGHT_80TO90      2377
+// #define HEIGHT_90TO100     3000  //3401
+
+#endif
 
 #define MOTORSTATUS_RUN      0X01
 #define MOTORSTATUS_STOP     0X02
