@@ -175,7 +175,11 @@
 #define ANGLE_40TO50        70
 #define ANGLE_50TO60        66
 #define ANGLE_60TO70        80
-#define ANGLE_70TO80        500//29
+#define ANGLE_70TO80        500
+
+#define ANGLE_0TO30         325
+#define ANGLE_30TO50        146
+#define ANGLE_50TO80        646
 
 
 #define ANGLE_0TON0         50
@@ -187,6 +191,7 @@
 #define ANGLE_60TO50        75
 #define ANGLE_70TO60        75
 #define ANGLE_80TO70        300
+
 #define ANGLE_80TO60        375
 #define ANGLE_80TO50        450
 #define ANGLE_80TO40        525
@@ -194,6 +199,10 @@
 #define ANGLE_80TO20        675
 #define ANGLE_80TO10        750
 #define ANGLE_80TO0         1000//950
+
+
+#define ANGLE_30TO0         225
+#define ANGLE_50TO30        225
 
 
 //下降
@@ -208,7 +217,9 @@
 #define HEIGHT_40TO30      2600
 #define HEIGHT_30TO20      2600
 #define HEIGHT_20TO10      2600
-#define HEIGHT_10TO0       4000  //4958
+#define HEIGHT_10TO0       4000  
+
+#define HEIGHT_100TO0      23800
 
 //上升
 #define HEIGHT_0TO10       2600
@@ -222,28 +233,8 @@
 #define HEIGHT_80TO90      2600
 #define HEIGHT_90TO100     4000  //3401
 
-// #define HEIGHT_100TO90    2252
-// #define HEIGHT_90TO80      2334
-// #define HEIGHT_80TO70      2412
-// #define HEIGHT_70TO60      2499
-// #define HEIGHT_60TO50      2597
-// #define HEIGHT_50TO40      2709
-// #define HEIGHT_40TO30      2837
-// #define HEIGHT_30TO20      2989
-// #define HEIGHT_20TO10      3170
-// #define HEIGHT_10TO0        4000  //4958
+#define HEIGHT_0TO100      23800
 
-// //上升
-// #define HEIGHT_0TO10       3240
-// #define HEIGHT_10TO20      3093
-// #define HEIGHT_20TO30      2947
-// #define HEIGHT_30TO40      2821
-// #define HEIGHT_40TO50      2711
-// #define HEIGHT_50TO60      2613
-// #define HEIGHT_60TO70      2527
-// #define HEIGHT_70TO80      2448
-// #define HEIGHT_80TO90      2377
-// #define HEIGHT_90TO100     3000  //3401
 
 #endif
 
@@ -300,6 +291,18 @@ void Motor_Stop(void)
 {
     gpio_set_level(MOTOR_CTL1, 0);
     gpio_set_level(MOTOR_CTL2, 0);//停止   
+}
+
+static void Motor_Height_sub1(void)//高度-1（范围0-100）
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Up();
+
+    esp_timer_start_once(timer_once_handle, (HEIGHT_100TO0/100) * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.height=Motor_Value.height-1;
+    printf("height=%d\n",Motor_Value.height);
 }
 
 static void Motor_Height_100to90(void)
@@ -412,6 +415,17 @@ static void Motor_Height_10to0(void)
     Motor_Stop();       
     Motor_Value.height=0;
     Motor_Value.angle=0;
+    printf("height=%d\n",Motor_Value.height);
+}
+
+static void Motor_Height_add1(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Down();
+    esp_timer_start_once(timer_once_handle, (HEIGHT_0TO100/100) * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.height=Motor_Value.height+1;
     printf("height=%d\n",Motor_Value.height);
 }
 
@@ -538,16 +552,6 @@ static void Motor_Angle_80to60(void)
 }
 
 
-static void Motor_Angle_80to50(void)
-{
-    Motor_Status=MOTORSTATUS_RUN;
-    Motor_Up();
-    esp_timer_start_once(timer_once_handle, ANGLE_80TO50 * 1000); //启动单次定时器
-    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
-    Motor_Stop();       
-    Motor_Value.angle=50;
-    printf("angle=%d\n",Motor_Value.angle);
-}
 
 static void Motor_Angle_80to40(void)
 {
@@ -617,6 +621,17 @@ static void Motor_Angle_80to70(void)
     printf("angle=%d\n",Motor_Value.angle);
 }
 
+static void Motor_Angle_80to50(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Up();
+    esp_timer_start_once(timer_once_handle, ANGLE_80TO50 * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.angle=50;
+    printf("angle=%d\n",Motor_Value.angle);
+}
+
 static void Motor_Angle_70to60(void)
 {
     Motor_Status=MOTORSTATUS_RUN;
@@ -652,6 +667,17 @@ static void Motor_Angle_50to40(void)
     printf("angle=%d\n",Motor_Value.angle);
 }
 
+static void Motor_Angle_50to30(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Up();
+    esp_timer_start_once(timer_once_handle, ANGLE_50TO30 * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.angle=30;
+    printf("angle=%d\n",Motor_Value.angle);
+}
+
 
 static void Motor_Angle_40to30(void)
 {
@@ -673,6 +699,17 @@ static void Motor_Angle_30to20(void)
     while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
     Motor_Stop();       
     Motor_Value.angle=20;
+    printf("angle=%d\n",Motor_Value.angle);
+}
+
+static void Motor_Angle_30to0(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Up();
+    esp_timer_start_once(timer_once_handle, ANGLE_30TO0 * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.angle=0;
     printf("angle=%d\n",Motor_Value.angle);
 }
 
@@ -733,6 +770,17 @@ static void Motor_Angle_0to10(void)
     printf("angle=%d\n",Motor_Value.angle);
 }
 
+static void Motor_Angle_0to30(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Down();
+    esp_timer_start_once(timer_once_handle, ANGLE_0TO30 * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.angle=30;
+    printf("angle=%d\n",Motor_Value.angle);
+}
+
 static void Motor_Angle_10to20(void)
 {
     Motor_Status=MOTORSTATUS_RUN;
@@ -766,6 +814,17 @@ static void Motor_Angle_30to40(void)
     printf("angle=%d\n",Motor_Value.angle);
 }
 
+static void Motor_Angle_30to50(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Down();
+    esp_timer_start_once(timer_once_handle, ANGLE_30TO50 * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.angle=50;
+    printf("angle=%d\n",Motor_Value.angle);
+}
+
 static void Motor_Angle_40to50(void)
 {
     Motor_Status=MOTORSTATUS_RUN;
@@ -786,6 +845,17 @@ static void Motor_Angle_50to60(void)
     while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
     Motor_Stop();       
     Motor_Value.angle=60;
+    printf("angle=%d\n",Motor_Value.angle);
+}
+
+static void Motor_Angle_50to80(void)
+{
+    Motor_Status=MOTORSTATUS_RUN;
+    Motor_Down();
+    esp_timer_start_once(timer_once_handle, ANGLE_50TO80 * 1000); //启动单次定时器
+    while(Motor_Status==MOTORSTATUS_RUN){vTaskDelay(10 / portTICK_RATE_MS);}
+    Motor_Stop();       
+    Motor_Value.angle=80;
     printf("angle=%d\n",Motor_Value.angle);
 }
 
@@ -912,29 +982,14 @@ int Motor_HandCtl_Angle(uint8_t change)
                 case 80:
                     return MOTORERR;
                     break;
-                case 70:
-                    Motor_Angle_70to80();
-                    break;
-                case 60:
-                    Motor_Angle_60to70();
-                    break;
                 case 50:
-                    Motor_Angle_50to60();
-                    break;
-                case 40:
-                    Motor_Angle_40to50();
+                    Motor_Angle_50to80();
                     break;
                 case 30:
-                    Motor_Angle_30to40();
-                    break;
-                case 20:
-                    Motor_Angle_20to30();
-                    break;
-                case 10:
-                    Motor_Angle_10to20();
+                    Motor_Angle_30to50();
                     break;
                 case 0:
-                    Motor_Angle_0to10();
+                    Motor_Angle_0to30();
                     break;
                 case -10:
                     Motor_Angle_N0to0();
@@ -960,29 +1015,14 @@ int Motor_HandCtl_Angle(uint8_t change)
                 case 0:
                     return MOTORERR;
                     break;
-                case 10:
-                    Motor_Angle_10to0();
-                    break;
-                case 20:
-                    Motor_Angle_20to10();
-                    break;
                 case 30:
-                    Motor_Angle_30to20();
-                    break;
-                case 40:
-                    Motor_Angle_40to30();
+                    Motor_Angle_30to0();
                     break;
                 case 50:
-                    Motor_Angle_50to40();
-                    break;
-                case 60:
-                    Motor_Angle_60to50();
-                    break;
-                case 70:
-                    Motor_Angle_70to60();
+                    Motor_Angle_50to30();
                     break;
                 case 80:
-                    Motor_Angle_80to70();
+                    Motor_Angle_80to50();
                     break;
                 default:
                     return MOTORERR;
@@ -1347,46 +1387,16 @@ static int Motor_KeyCtl_Height(uint8_t change)
                 default:
                     break;
             }
-            switch(Motor_Value.height)//再调整高度
+            //再调整高度
+            if(Motor_Value.height == 0)
             {
-                case 100:
-                    Motor_Height_100to90();
-                    break;
-                case 90:
-                    Motor_Height_90to80();
-                    break;
-                case 80:
-                    Motor_Height_80to70(); 
-                    break;
-                case 70:
-                    Motor_Height_70to60();
-                    break;
-                case 60:
-                    Motor_Height_60to50(); 
-                    break;
-                case 50:
-                    Motor_Height_50to40(); 
-                    break;
-                case 40:
-                    Motor_Height_40to30(); 
-                    break;
-                case 30:
-                    Motor_Height_30to20(); 
-                    break;
-                case 20:
-                    Motor_Height_20to10(); 
-                    break;
-                case 10:
-                    Motor_Height_10to0();
-                    break;
-                case 0:
-                    return MOTORERR;
-                    break;
-                default:
-                    return MOTORERR;
-                    break;
+                return MOTORERR;
             }
-            return MOTOROK;
+            else
+            {
+                Motor_Height_sub1();
+                return MOTOROK;
+            }
         }
         else
         {
@@ -1470,48 +1480,16 @@ static int Motor_KeyCtl_Height(uint8_t change)
                         break;
                 }
             }
-            switch(Motor_Value.height)//再调整高度
-            {
-                case 0:
-                    Motor_Height_0to10(); 
-                    Motor_Value.angle=80;
-                    break;
-                case 10:
-                    Motor_Height_10to20(); 
-                    break;
-                case 20:
-                    Motor_Height_20to30(); 
-                    break;
-                case 30:
-                    Motor_Height_30to40(); 
-                    break;
-                case 40:
-                    Motor_Height_40to50(); 
-                    break;
-                case 50:
-                    Motor_Height_50to60(); 
-                    break;
-                case 60:
-                    Motor_Height_60to70(); 
-                    break;
-                case 70:
-                    Motor_Height_70to80(); 
-                    break;
-                case 80:
-                    Motor_Height_80to90(); 
-                    break;
-                case 90:
-                    Motor_Height_90to100(); 
-                    break;
-                case 100:
-                    return MOTORERR;
-                    break;
-                default:
-                    return MOTORERR;
-                    break;
 
+            if(Motor_Value.height==100)
+            {
+                return MOTORERR;
             }
-            return MOTOROK;
+            else
+            {
+                Motor_Height_add1(); 
+                return MOTOROK;
+            }
         }
         else
         {
@@ -1634,7 +1612,8 @@ int Motor_KeyCtl(uint8_t change)
             {
                 return MOTORERR;
             }
-            else if(Motor_Value.angle==10)//当角度=10时，执行角度-10后，返回，停止
+
+            else if(Motor_Value.angle==30)//当角度=30时，执行角度--后，=角度=0，返回，停止
             {
                 Motor_HandCtl_Angle(SUB); 
                 return MOTORERR;
@@ -1654,6 +1633,8 @@ int Motor_KeyCtl(uint8_t change)
             }
             else//当前角度=0状态时，高度直接减少
             {
+                //高度每次减小10，减小后返回MOTOROK，继续减小，直到高度=0停止
+                //
                 ret=Motor_KeyCtl_Height(SUB);
                 if(ret==MOTOROK)
                 {
@@ -1679,7 +1660,7 @@ int Motor_KeyCtl(uint8_t change)
             {
                 return Motor_KeyCtl_Height(ADD);
             }
-            else if(Motor_Value.angle==70)//当角度为70时，执行angleadd后，返回停止
+            else if(Motor_Value.angle==50)//当角度为50时，执行angle++后角度=80，返回停止
             {
                 Motor_HandCtl_Angle(ADD);
                 return MOTORERR;
@@ -1698,7 +1679,6 @@ int Motor_KeyCtl(uint8_t change)
                     {
                         return ret;
                     }
-
                 }
                 else//当前角度在80状态时，高度++
                 {
@@ -1716,12 +1696,10 @@ int Motor_KeyCtl(uint8_t change)
         change=WAIT;
         if(Motor_Value.angle==-10)  //当前正在上升，停止后角度为-10，则执行-10～10
         {
-             Motor_Angle_N0to0();//正常上升结束后执行一次-10～10
+            Motor_Angle_N0to0();   //正常上升结束后执行一次-10～10
            
         }
-        
     }
-
     return MOTORERR;
 
 }
@@ -1732,48 +1710,43 @@ void Motor_Ctl_App(void)
     switch(WallKeyCtl_Status)
     {
         case WallKeyUpStart:
-
             work_status=WORK_WALLKEY;
             Led_Status=LED_STA_HAND;
             mqtt_json_s.mqtt_last=MAX_WALLKEY_TIME;
-            
             if(Motor_KeyCtl(ADD)==MOTORERR)
             {
                 WallKeyCtl_Status=WallKeyUpStop;
                 printf("WallKeyCtl_Status=stop\n");
             }
-
-
             break;
-        case WallKeyDownStart:
 
+        case WallKeyDownStart:
             work_status=WORK_WALLKEY;
             Led_Status=LED_STA_HAND;
             mqtt_json_s.mqtt_last=MAX_WALLKEY_TIME;
-            
             if(Motor_KeyCtl(SUB)==MOTORERR)
             {
                 WallKeyCtl_Status=WallKeyDownStop;
                 printf("WallKeyCtl_Status=stop\n");
             }
-
-
             break;
+
         case WallKeyUpStop: //上升停止，高度停止时执行-10～10，角度停止时不执行                  
             Motor_KeyCtl(STOP);
             WallKeyCtl_Status=WallKeyWait;
             strcpy(mqtt_json_s.mqtt_mode, "0");//手动模式
             if(WifiStatus==WIFISTATUS_CONNET)
             {
-                http_send_mes(POST_NORMAL); 
+                http_send_mes(POST_NORMAL);
             }
             break;
+
         case WallKeyDownStop://下降停止
             WallKeyCtl_Status=WallKeyWait;
             strcpy(mqtt_json_s.mqtt_mode, "0");//手动模式
             if(WifiStatus==WIFISTATUS_CONNET)
             {
-                http_send_mes(POST_NORMAL); 
+                http_send_mes(POST_NORMAL);
             }
             break;
 
